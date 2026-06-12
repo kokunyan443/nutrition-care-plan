@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a9165"/>
+      <stop offset="1" stop-color="#266a45"/>
+    </linearGradient>
+  </defs>
+  <!-- 背景（角丸） -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- クリップボード -->
+  <rect x="116" y="92" width="280" height="350" rx="28" fill="#ffffff"/>
+  <rect x="196" y="64" width="120" height="56" rx="20" fill="#cfe7d9"/>
+  <rect x="196" y="64" width="120" height="56" rx="20" fill="none" stroke="#266a45" stroke-width="10"/>
+  <!-- 記入行 -->
+  <rect x="156" y="170" width="200" height="18" rx="9" fill="#cfe7d9"/>
+  <rect x="156" y="218" width="160" height="18" rx="9" fill="#cfe7d9"/>
+  <!-- チェックマーク -->
+  <path d="M170 330 L225 385 L350 250" fill="none" stroke="#2e7d52" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- スプーン（右下アクセント） -->
+  <g transform="translate(395,355) rotate(35)">
+    <ellipse cx="0" cy="-38" rx="30" ry="42" fill="#f5a94e"/>
+    <rect x="-9" y="-4" width="18" height="110" rx="9" fill="#f5a94e"/>
+  </g>
+</svg>

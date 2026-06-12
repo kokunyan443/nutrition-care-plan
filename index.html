@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>栄養ケア計画作成アプリ</title>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2e7d52">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="栄養ケア計画">
+<style>
+  :root {
+    --main: #2e7d52;
+    --main-light: #e8f3ed;
+    --accent: #c75b1e;
+    --bg: #f6f7f5;
+    --card: #ffffff;
+    --line: #d8ded9;
+    --text: #2b2f2c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background: var(--bg); color: var(--text);
+    font-size: 15px; line-height: 1.7;
+  }
+  header {
+    background: var(--main); color: #fff;
+    padding: 18px 24px;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: .9; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  section { margin-bottom: 28px; }
+  h2 {
+    font-size: 18px; color: var(--main);
+    border-left: 6px solid var(--main);
+    padding-left: 10px; margin: 0 0 12px;
+  }
+  .note { font-size: 13px; color: #666; margin: 0 0 10px; }
+
+  /* 手順テーブル */
+  .steps-caution {
+    background: #fdf3e7; border: 1px solid #eccfa8;
+    padding: 8px 14px; border-radius: 6px;
+    font-weight: bold; color: #8a5413; margin-bottom: 12px; font-size: 14px;
+  }
+  .step-doc {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 26px 22px;
+  }
+  .step-doc h3 {
+    font-size: 18px; color: var(--main);
+    margin: 22px 0 8px; padding-bottom: 6px;
+    border-bottom: 2px solid var(--main);
+  }
+  .step-doc h3::before { content: "◉ "; font-size: 15px; }
+  .step-doc p {
+    font-size: 16px; line-height: 2; margin: 0 0 6px;
+  }
+  .step-doc ul {
+    font-size: 16px; line-height: 2; margin: 4px 0 6px; padding-left: 1.4em;
+  }
+  .step-doc .kome { color: #8a5413; }
+
+  /* チェックボックス群 */
+  .check-group {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; margin-bottom: 14px; overflow: hidden;
+  }
+  .check-group > summary {
+    cursor: pointer; padding: 12px 16px; font-weight: bold;
+    background: var(--main-light); color: var(--main); font-size: 15px;
+  }
+  .check-list { padding: 8px 16px 14px; }
+  .check-list.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    column-gap: 14px;
+  }
+  label.item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 7px 8px; border-bottom: 1px dashed #e4e8e4;
+    cursor: pointer; font-size: 14px;
+  }
+  label.item:hover { background: #f2f7f3; }
+  label.item input { margin-top: 5px; flex: none; width: 16px; height: 16px; accent-color: var(--main); }
+  label.item:last-child { border-bottom: none; }
+
+  .toolbar {
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    margin: 14px 0;
+  }
+  .toolbar .count { font-weight: bold; color: var(--main); }
+  button.clear {
+    background: #fff; border: 1px solid var(--main); color: var(--main);
+    padding: 7px 18px; border-radius: 20px; font-size: 14px; cursor: pointer;
+  }
+  button.clear:hover { background: var(--main-light); }
+  button.print {
+    background: var(--main); border: 1px solid var(--main); color: #fff;
+    padding: 7px 18px; border-radius: 20px; font-size: 14px; cursor: pointer;
+  }
+
+  /* 結果カード */
+  .plan-card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; margin-bottom: 18px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .plan-head {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; flex-wrap: wrap;
+    background: var(--main); color: #fff; padding: 8px 16px; font-size: 13px;
+  }
+  .plan-head .src { font-weight: bold; }
+  .plan-head .badge-new {
+    background: var(--accent); padding: 2px 10px; border-radius: 12px;
+    font-weight: bold;
+  }
+  .plan-body { padding: 6px 16px 14px; }
+  .row { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px dashed #e4e8e4; }
+  .row:last-child { border-bottom: none; }
+  .row .lbl {
+    flex: none; width: 110px; font-weight: bold; color: var(--main);
+    font-size: 13.5px; padding-top: 1px;
+  }
+  .row .val { flex: 1; font-size: 14.5px; white-space: pre-wrap; }
+  .val ul { margin: 0; padding-left: 1.3em; }
+  .val ul li { margin: 2px 0; }
+  .staff-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid #b9c0ba; color: #8a918b; background: #fff;
+    border-radius: 14px; padding: 2px 11px; margin: 2px 6px 2px 0;
+    font-size: 13.5px; cursor: pointer; user-select: none;
+  }
+  .staff-chip input {
+    width: 14px; height: 14px; margin: 0; accent-color: var(--main);
+    cursor: pointer;
+  }
+  .staff-chip.on {
+    background: var(--main-light); color: var(--main);
+    border-color: var(--main); font-weight: bold;
+  }
+  .staff-hint { font-size: 12px; color: #999; margin-top: 4px; }
+  .matched {
+    font-size: 12.5px; color: #777; background: #f4f6f4;
+    padding: 6px 16px; border-top: 1px solid var(--line);
+  }
+  .matched b { color: var(--main); }
+  .empty-msg, .ok-msg {
+    background: var(--card); border: 1px dashed var(--line);
+    border-radius: 10px; padding: 26px; text-align: center; color: #888;
+  }
+  .ok-msg { border: 1px solid var(--main); color: var(--main); font-weight: bold; }
+  .legend { font-size: 12.5px; color: #777; margin-top: 6px; }
+
+  @media print {
+    header, #selectSec, .toolbar, .staff-hint { display: none; }
+    body { background: #fff; }
+    .plan-card { break-inside: avoid; box-shadow: none; }
+    .staff-chip:not(.on) { display: none; }
+    .staff-chip input { display: none; }
+  }
+  @media (max-width: 640px) {
+    .row { flex-direction: column; gap: 2px; }
+    .row .lbl { width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>栄養ケア計画作成アプリ</h1>
+  <p>栄養診断や症状・疾患・問題点などをチェックすると、該当するケアプランを表示します</p>
+</header>
+
+<main>
+
+<!-- ① 作成手順 -->
+<section id="stepsSec">
+  <h2>栄養ケア計画の作成手順</h2>
+  <div class="steps-caution">※全ての項目について、施設サービス計画書の内容と齟齬がないか確認すること</div>
+  <div class="step-doc">
+    <h3>利用者及び家族の意向</h3>
+    <p>施設サービス計画の記載内容及び栄養・摂食嚥下スクリーニング・アセスメント・モニタリングにおける利用者及び家族の身体状況、栄養状態、食事・栄養補給に関する意向を転記</p>
+
+    <h3>解決すべき課題（ニーズ）</h3>
+    <p>栄養・摂食嚥下スクリーニング・アセスメント・モニタリングにおける総合的評価・判定で記入された、解決すべき課題（ニーズ）を各項目ごとに優先項目順に記入</p>
+    <p class="kome">※「～したい」と記載</p>
+
+    <h3>長期目標（ゴール）と期間</h3>
+    <p>栄養状態にかかわる目標並びにＱＯＬに関連した主観的健康感にかかわる目標などを記入</p>
+    <p>期間）このケア計画の終了予定日、対応期間</p>
+    <p class="kome">※「～できる」と記載</p>
+
+    <h3>短期目標と期間</h3>
+    <p>目標設定の留意事項　①できるだけ具体的に、定量的評価が出来るように設定</p>
+    <ul>
+      <li>達成される行動の変化は何か</li>
+      <li>どの程度の変化を期待するのか</li>
+      <li>いつまでに変化が起こるのか</li>
+      <li>そのために何（物、金、人）が必要か</li>
+    </ul>
+
+    <h3>①栄養補給・食事</h3>
+    <p>最初に記載</p>
+    <p>必要栄養量　●kcal　たんぱく質●g　水分●ml　その他必要な栄養素</p>
+    <p>提供栄養量　●kcal　たんぱく質●g　水分●ml　その他必要な栄養素</p>
+    <p class="kome">※エネルギー産生栄養素は体重1kgあたりの量を記載できるとよい（●g/kgで記載）</p>
+    <p>食種・食事形態（嚥下食コード）・分量、主食の形態・分量、栄養補助食品類（商品名、エネルギー、たんぱく質量）</p>
+  </div>
+</section>
+
+<!-- ② チェックボックス選択 -->
+<section id="selectSec">
+  <h2>該当項目の選択</h2>
+  <p class="note">当てはまる項目にチェックを入れてください（複数選択可）。チェックすると下に該当するケアプランが表示されます。</p>
+
+  <details class="check-group" open>
+    <summary>栄養診断用語（コード）</summary>
+    <div class="check-list" id="listCodes"></div>
+  </details>
+
+  <div id="extraGroups"></div>
+
+  <div class="toolbar">
+    <span class="count" id="countLabel">選択中：0件</span>
+    <button class="clear" onclick="clearAll()">選択をクリア</button>
+    <button class="print" onclick="window.print()">表示中のプランを印刷</button>
+  </div>
+</section>
+
+<!-- ③ ケアプラン表示 -->
+<section id="resultSec">
+  <h2>該当するケアプラン</h2>
+  <div id="results">
+    <div class="empty-msg">上の項目にチェックを入れると、該当するケアプランがここに表示されます。</div>
+  </div>
+  <p class="legend">
+    担当者はプランごとに、医師・看護師・介護士・相談員・ケアマネージャー・管理栄養士・言語聴覚士・歯科衛生士・ご家族・ご本人から複数選択できます。プランの内容に応じた担当者と管理栄養士が、あらかじめ選択された状態で表示されます。
+  </p>
+</section>
+
+</main>
+
+<script>
+// ============ ケアプランデータ ============
+// source: 出典（ケアプラン1 / ケアプラン2・3 / 新規作成）
+// services: サービス内容（箇条書き）、staff: 担当者（管理栄養士は表示時に自動追加）
+const PLANS = {
+P01: { source: "ケアプラン1 No.1／ケアプラン2・3 No.4",
+  needs: "義歯が合わず食欲がなくなって困っているが、以前のようにおいしく食事を摂りたい",
+  long: "以前のように、好きなものをおいしく食べることができる",
+  short: "義歯が合うように調整することができる",
+  services: ["歯科受診（義歯の定期的な調整、食事摂取についてのアドバイスを受ける）","調理方法の工夫"],
+  staff: ["医師","歯科衛生士","ご本人","ご家族"] },
+P02: { source: "ケアプラン1 No.2／ケアプラン2・3 No.8・17",
+  needs: "脳梗塞のため飲み込みが悪く、食事量が減っているが、以前のようにしっかり食べて元気になりたい",
+  long: "以前のように、好きなものをおいしく食べることができる",
+  short: "飲み込みがうまくできて、食事摂取量を確保することができる",
+  services: ["受診介助（病院内の付き添い、医師への情報伝達・嚥下についての指示の確認）","飲み込み、食事形態、調理方法についての助言","嚥下体操、マッサージ（言語聴覚士）"],
+  staff: ["医師","言語聴覚士","ご家族"] },
+P03: { source: "ケアプラン1 No.3／ケアプラン2・3 No.9",
+  needs: "義歯や口の中を見られるのは恥ずかしいので、できる限り自分でやって、口の中の清潔を保ちたい",
+  long: "口の中のトラブルや肺炎を防ぎ、また、家族や他の介護者に気兼ねすることなく暮らすことができる",
+  short: "義歯の手入れと歯磨きを自分で行うことができ、清潔を保つことができる",
+  services: ["洗面所に手すりの設置","口腔内の確認（清潔の保持具合について）","定期的な歯科受診"],
+  staff: ["医師","歯科衛生士","介護士","ケアマネージャー"] },
+P04: { source: "ケアプラン1 No.4・17／ケアプラン2・3 No.15",
+  needs: "理由はわからないが、むせて苦しいので、むせずに食事がしたい",
+  long: "むせることなく、食事を味わうことができる",
+  short: "むせることがなくなる",
+  services: ["原因の確認、医師への相談（向精神薬の影響も考慮に入れる）","トロミの使用、調理の工夫","一口ずつゆっくり食べる"],
+  staff: ["医師","ご家族","ご本人"] },
+P05: { source: "ケアプラン1 No.5／ケアプラン2・3 No.10",
+  needs: "自分での体調管理に自信がないが、今の健康を維持して暮らしたい",
+  long: "入院することなく、家族と一緒に自宅での生活を続けることができる",
+  short: "ふだんと異なる点を見つけてもらうことができる",
+  services: ["定期的な体調管理（血圧測定、健康相談）","食事摂取量の確認"],
+  staff: ["看護師","ご家族"] },
+P06: { source: "ケアプラン1 No.6／ケアプラン2・3 No.11",
+  needs: "自分で体調の変化に気づけないことがあるので、体調不良の兆候を早めに発見してほしい",
+  long: "今の健康を維持して、安心して暮らすことができる",
+  short: "膀胱留置カテーテルについて、日常の体調管理を行うことができる",
+  services: ["水分摂取量、食事摂取量の確認","陰部の清潔、膀胱留置カテーテルの管理（1日1,300ccの水分を摂れるようにする）"],
+  staff: ["看護師","ご家族"] },
+P07: { source: "ケアプラン1 No.7",
+  needs: "自分で体調管理することは難しいが、大腸がんの手術後でもあり、一層体調に気をつけて健康に暮らしたい",
+  long: "今の体調、健康状態を維持することができる",
+  short: "毎日の健康管理を行い、異常に気づいてもらうことができる",
+  services: ["食事状況、排泄状況を観察し、確認する（基本的には食事制限はないが、術後3か月くらいは食物繊維が多いものや消化しにくいものは閉塞の原因となることがあるので控える）"],
+  staff: ["ご家族","介護士"] },
+P08: { source: "ケアプラン1 No.8／ケアプラン2・3 No.24",
+  needs: "ひとり暮らしで、3食きちんと摂れないことがあるが、しっかり食べて元気になりたい",
+  long: "3食きちんと食べて、健康状態を維持することができる",
+  short: "1日1食でも十分に栄養がある食事を摂ることができる",
+  services: ["お弁当の取り寄せ（配食サービス）","食事づくり（栄養価の高いものを中心にし、きちんと食べることができたかを確認する。摂取量8割を目安とする）"],
+  staff: ["介護士","ケアマネージャー"] },
+P09: { source: "ケアプラン1 No.9",
+  needs: "もの忘れがあり、体調不良を自ら訴えることができないが、入院せず健康に暮らしたい",
+  long: "現在の健康状態を維持して、入院せず自宅での暮らしを続けることができる",
+  short: "心不全・腎不全があるため、医師の指示のもと、水分・食事を適切に摂ることができる",
+  services: ["1日1,300ccの水分摂取の声かけ、確認","3食の食事の摂取量確認（7割摂取を目標）"],
+  staff: ["介護士","ご家族"] },
+P10: { source: "ケアプラン1 No.10／ケアプラン2・3 No.33",
+  needs: "水分を摂ることがあまり好きではなく、たびたび脱水を起こして体調を崩しているが、元気な状態を維持したい",
+  long: "適度な水分を摂って、健康な状態を維持することができる",
+  short: "好みの飲み物を適量飲む習慣をもつことができる",
+  services: ["飽きがこないように、麦茶、紅茶、カルピスなど、好みの飲み物をいくつか用意する","必要な水分量（1日1,300cc）を摂るための声かけを行う"],
+  staff: ["ご家族","介護士"] },
+P11: { source: "ケアプラン1 No.11",
+  needs: "水分を摂ることがあまり好きではなく、たびたび脱水を起こして体調を崩しているが、元気な状態を維持したい",
+  long: "適度な水分を摂って、健康な状態を維持することができる",
+  short: "抵抗感なく生活の中で自然に水分を摂ることができる",
+  services: ["毎食前にお茶を勧める","体操や散歩などの運動後に水分を勧める","買い物や喫茶店など外出先で水分を摂るようにする"],
+  staff: ["ご家族"] },
+P12: { source: "ケアプラン1 No.12／ケアプラン2・3 No.12・34",
+  needs: "糖尿病があるため、体調管理が難しいが、気持ちの負担なく、健康を維持したい",
+  long: "制限されるストレスなく、今の健康状態を維持することができる",
+  short: "30年来の習慣である10時と15時のおやつを楽しむことができる",
+  services: ["カロリーは少ないが、満腹感と満足感が得られるおやつの用意","かかりつけ医の助言"],
+  staff: ["ご家族","医師"] },
+P13: { source: "ケアプラン1 No.13／ケアプラン2・3 No.13",
+  needs: "若い頃から便秘症で、食欲がなくなったり、イライラすることがあるが、いつも快適な気分で過ごしたい",
+  long: "便秘が改善し、イライラすることなく、家族と気持ちよく過ごすことができる",
+  short: "下剤や浣腸を適切に使ったり、その他の工夫を検討する",
+  services: ["定期受診時、主治医からの助言、下剤の処方","毎朝朝食後に便意がなくてもトイレに座る習慣をもつ","起床時にコップ1杯の水を飲む","日常的に看護職と相談する"],
+  staff: ["医師","看護師","ご本人","ご家族","介護士"] },
+P14: { source: "ケアプラン1 No.14／ケアプラン2・3 No.14",
+  needs: "自分のことは自分でしたい。今できることを維持したい",
+  long: "自分のことは自分で行って、納得した暮らしを継続することができる",
+  short: "身体の痛みの状態に配慮しながら、今の立位や食事摂取の状態を維持することができる",
+  services: ["立位時の見守り、介助、身体の痛みの状態把握（移乗時の立位の状態や痛みの状態を把握する）"],
+  staff: ["ご家族","介護士"] },
+P15: { source: "ケアプラン1 No.15／ケアプラン2・3 No.6・32・35",
+  needs: "左大腿骨頸部骨折（脳梗塞）を起こしてからずっとベッドで寝ているが、せめて3回の食事は起きて食べたい",
+  long: "3食起きて食べて、家族みんなと顔を合わせて団欒のひとときを過ごすことができる",
+  short: "時間に余裕がある昼食はベッドから起きて食堂で食べることができる",
+  services: ["ベッドからの起き上がり介助","車いすへの移乗介助","椅子への移乗介助","方法の助言、移乗動作のリハビリ","移乗バー、車いすの使用"],
+  staff: ["ご家族","介護士","ケアマネージャー"] },
+P16: { source: "ケアプラン1 No.16／ケアプラン2・3 No.25",
+  needs: "脳梗塞を起こしてから飲み込みが悪くなり、普通のご飯が食べられなくなったが、おいしく味わって食べたい",
+  long: "おいしく食べることによって、以前のように食事の時間を楽しみに感じることができる",
+  short: "ミキサー食の献立を説明してもらい、内容を知ることができる",
+  services: ["食事介助をする際に、献立の内容を説明する","一口ずつ、何を食べるのか説明する","食べる意思を確認してから口に運ぶ"],
+  staff: ["ご家族","介護士"] },
+P17: { source: "ケアプラン1 No.18・26／ケアプラン2・3 No.18",
+  needs: "失行があり、食器をうまく使って食べられないが、恥ずかしいので食器を使って食べたい",
+  long: "ひとりで食器を使うことができる",
+  short: "職員の真似をして、食器を使うことができる",
+  services: ["職員も同じ食器を持って、食べる真似を見てもらう","うまくできたときには一緒に喜ぶ"],
+  staff: ["ご本人","ご家族","介護士"] },
+P18: { source: "ケアプラン1 No.19・27／ケアプラン2・3 No.19",
+  needs: "失行があり、食器をうまく使って食べられないが、自分なりの食べ方でおいしく食べたい",
+  long: "自分なりの食べ方でおいしく食事をとることができる",
+  short: "手づかみで食べることができる",
+  services: ["手づかみでも違和感がないように、おにぎりを用意する","おかずも可能な限り、のりで巻くなどの工夫をする"],
+  staff: ["介護士"] },
+P19: { source: "ケアプラン1 No.20／ケアプラン2・3 No.26",
+  needs: "脳出血により四肢マヒがあり、介助してもらって食べているが、好きなものを好きなように食べたい",
+  long: "好みを把握してもらい、定期的に好物を出してもらうことができる",
+  short: "食べたい順番で食べることができる",
+  services: ["食事介助をする際に、声かけし確認しながら行う","好きな食べ方、食べ物の把握（話を聞く）"],
+  staff: ["ご家族","介護士"] },
+P20: { source: "ケアプラン1 No.21",
+  needs: "動くのは億劫だが、身体のために運動する必要があるのなら、楽しく動きたい",
+  long: "楽しみと充実感のある活動をし、健康を維持することができる",
+  short: "好きなこと、昔からの趣味を楽しみながら運動することができる",
+  services: ["散歩、喫茶、買い物などの外出、健康体操教室への参加（なじみの店などできるとよい）"],
+  staff: ["ご家族","ケアマネージャー"] },
+P21: { source: "ケアプラン1 No.22／ケアプラン2・3 No.27",
+  needs: "脳梗塞による右マヒがあるが、3度の食事を自分でつくれるようになりたい",
+  long: "自分で調理することで、好きなものを好きなときに食べ、おいしい食事で元気になる",
+  short: "味噌汁などの簡単な料理がつくれるようになる",
+  services: ["つくりたいメニューを相談して一緒につくる","座って調理ができるような環境整備"],
+  staff: ["介護士","ご家族"] },
+P22: { source: "ケアプラン1 No.23／ケアプラン2・3 No.28",
+  needs: "ひとり暮らしで食事が偏っているが、3度の食事でバランスよく口にあったものが食べたい",
+  long: "おいしい食事をきちんと摂ることで、元気になり、大好きな畑仕事ががんばれる",
+  short: "自分の好みにあったものが食べられる",
+  services: ["献立の内容や味付けを一緒に考えながら調理を行う"],
+  staff: ["介護士"] },
+P23: { source: "ケアプラン1 No.24／ケアプラン2・3 No.3・29",
+  needs: "嫁が帰宅する時間が不規則なため、食事時間が定まらないが、決まった時間に食事がしたい",
+  long: "本人、嫁ともにストレスから解放され、関係をこじらせることなく自宅での生活を継続できる",
+  short: "昼食、夕食を決まった時間に食べることができる",
+  services: ["調理をお願いする（同居家族がいる場合の生活援助）","配食サービスの利用"],
+  staff: ["介護士","ケアマネージャー"] },
+P24: { source: "ケアプラン1 No.25／ケアプラン2・3 No.16・21・30",
+  needs: "目の前に食べ物があると、ついつい口の中に一気に詰め込んでしまい、むせることがあるが、安全においしく食べたいと思う",
+  long: "食事の満足感と安心感を両立させることができる",
+  short: "むせるのを防ぎ、安全に食べてもらうことができる",
+  services: ["食事の際はさりげなく隣に座り、一口ずつ食べてもらえるよう声かけをする","一皿の分量を少なめにして、その都度出す","献立によっては食事形態を検討する","足が床にしっかりつき、前かがみになれる椅子・テーブルか確認する"],
+  staff: ["介護士","ご家族","医師"] },
+P25: { source: "ケアプラン1 No.28／ケアプラン2・3 No.22",
+  needs: "「私はまだ食べていない」と言うとき、そういう気持ちでいることを理解してほしい",
+  long: "通常の食事とお茶で安心感をもつことができる",
+  short: "食べていないという気持ちを理解してもらい、次の食事まで待つことができる",
+  services: ["「食べていない」という言葉を否定せず聞く","軽いおやつなどを食べてもらう","安心感をもってもらう（自分だけ食べさせてもらえない、という被害感を抱かないようにする）"],
+  staff: ["介護士","ご家族"] },
+P26: { source: "ケアプラン1 No.29",
+  needs: "リビングに置いてあるハンドクリームを食べてしまうことがあるが、本当はおいしいものを食べたいし、満ち足りた気持ちで過ごしたい",
+  long: "食べたいと思う気持ちも満たされ、親しい人と一緒にいることで、落ち着いた気持ちで過ごすことができる",
+  short: "口寂しいと思うときに、食べ過ぎにならない程度のおやつなどを口にすることができる",
+  services: ["様子を見はからって、適度なおやつの用意","そばに寄り添い、関わりを増やす（手持ちぶさたにならず、不安を軽減する）","念のためハンドクリームや洗剤など口に入れると危険なものは手の届かない位置に置く"],
+  staff: ["介護士","ご家族"] },
+P27: { source: "ケアプラン2・3 No.1",
+  needs: "火を安全に使えないが、自分で調理をしたいと思っている",
+  long: "元気な頃のように、つくった料理を息子や孫に食べてもらうことができる",
+  short: "手伝ってもらえるときに、一緒に調理を楽しむことができる",
+  services: ["電磁調理器を使って、一緒に調理する（できれば使い方を覚えてもらいたいが、難しいかもしれない）","市の配食サービスの利用"],
+  staff: ["介護士","ケアマネージャー"] },
+P28: { source: "ケアプラン2・3 No.2",
+  needs: "意思疎通ができず、身体も自由に動かすことができないが、楽しい気持ちで過ごしたい",
+  long: "優しい人に囲まれて明るく穏やかな気持ちで過ごすことができる",
+  short: "気分が落ち込まずに過ごすことができる",
+  services: ["毎日の散歩","日中、できる限り静養室ではなくデイルームで過ごし、活気ある雰囲気の中にいてもらう"],
+  staff: ["ご家族","介護士","ケアマネージャー"] },
+P29: { source: "ケアプラン2・3 No.7",
+  needs: "脳梗塞の後遺症で、むせることが多くなってきたが、安心して食べたい",
+  long: "できる限り食事をおいしくとることができる",
+  short: "生命の危険なく食事をとることができる",
+  services: ["食事の形態が適切か確認する","食事の形態を他者と間違えないようにする","餅や水分の少ないパンやのり、こんにゃくなど、窒息の危険が高いものについて注意する（ひかえるか、調理を工夫するか、見守りを強化する）","食事前に水分をとってもらう"],
+  staff: ["医師","言語聴覚士","介護士","ご家族"] },
+P30: { source: "ケアプラン2・3 No.23",
+  needs: "胃ろう周辺の皮膚トラブルを起こす可能性が高いが、苦痛なく穏やかな気持ちで暮らしたい",
+  long: "苦痛を伴うことなく、穏やかな気持ちで過ごすことができる",
+  short: "胃ろう周辺のトラブルを防ぐことができる",
+  services: ["胃ろう周辺の観察と清拭","胃ろう周辺の観察と消毒（異変があった場合には、看護職、または必要時には主治医へ相談する）"],
+  staff: ["ご家族","介護士","看護師"] },
+
+// ---- 新規作成プラン（既存ケアプランに該当がない栄養課題に対応） ----
+N01: { source: "新規作成", isNew: true,
+  needs: "発熱や病気のためエネルギーの消耗が大きいが、体力を落とさず元気に過ごしたい",
+  long: "体重を維持し、体力を落とさずに過ごすことができる",
+  short: "少量でもエネルギー・栄養価の高い食事を毎食摂ることができる",
+  services: ["必要栄養量の算定と、高エネルギー・高たんぱくの食事の工夫","栄養補助食品の活用（商品名・エネルギー・たんぱく質量を計画に明記）","体温や病状に応じた食事調整（主治医と連携）","定期的な体重測定と記録"],
+  staff: ["医師","看護師","ご家族"] },
+N02: { source: "新規作成", isNew: true,
+  needs: "酒量が多く食事をきちんと摂れていないが、体調を崩さず健康に過ごしたい",
+  long: "適量の飲酒にとどめ、3食しっかり食べて健康を維持することができる",
+  short: "飲酒の前に食事を摂る習慣をもつことができる",
+  services: ["主治医への相談（節酒についての助言）","食事摂取量と飲酒量の確認・記録","栄養価の高い副菜（つまみを兼ねたもの）の工夫"],
+  staff: ["医師","ご家族","介護士"] },
+N03: { source: "新規作成", isNew: true,
+  needs: "肉や魚をあまり食べられていないが、筋力を落とさず元気に過ごしたい",
+  long: "必要なたんぱく質を毎日摂り、筋力・体力を維持することができる",
+  short: "毎食、主菜（肉・魚・卵・大豆製品）を1品食べることができる",
+  services: ["食べやすく調理したたんぱく質食品の提供（軟らかく煮る、ほぐす等）","牛乳・乳製品や栄養補助食品の活用","食事摂取量の確認（主菜の摂取状況を記録）"],
+  staff: ["ご家族","介護士"] },
+N04: { source: "新規作成", isNew: true,
+  needs: "ご飯をあまり食べられていないが、力をつけて元気に過ごしたい",
+  long: "必要なエネルギーを確保し、体重を維持することができる",
+  short: "毎食、主食を決まった量食べることができる",
+  services: ["食べやすい主食の形態（おにぎり、パン、麺類、おかゆ等）の工夫","補食（おやつ）でのエネルギー補給","主食の摂取量の確認・記録"],
+  staff: ["ご家族","介護士"] },
+N05: { source: "新規作成", isNew: true,
+  needs: "体重が減って体力が落ちてきたが、体重を増やして元気に過ごしたい",
+  long: "体重を増やし、活気のある生活を送ることができる",
+  short: "3か月で体重を1～2kg増やすことができる",
+  services: ["必要栄養量の算定と提供栄養量の調整（エネルギー・たんぱく質の上乗せ）","少量で栄養のとれる栄養補助食品の活用","週1回の体重測定と記録","毎食の食事摂取量の確認"],
+  staff: ["医師","ご家族","介護士"] },
+N06: { source: "新規作成", isNew: true,
+  needs: "薬の影響で食欲や食事に影響が出ているが、安心して食事をしたい",
+  long: "薬と食事をうまく両立させ、健康状態を維持することができる",
+  short: "薬と食べ合わせの悪い食品を避けることができる",
+  services: ["主治医・薬剤師への相談（服薬内容と食事への影響の確認）","避けるべき食品・飲み物の情報提供","服薬時間と食事時間の調整","食欲や体調の変化の観察"],
+  staff: ["医師","ご家族"] },
+N07: { source: "新規作成", isNew: true,
+  needs: "栄養についてよくわからないが、自分に合った食事で健康に過ごしたい",
+  long: "自分に必要な食事の内容がわかり、バランスのよい食事を続けることができる",
+  short: "1日に食べるとよい食品の種類と量の目安を知ることができる",
+  services: ["わかりやすい栄養指導（食品の選び方、簡単な献立例の提示）","買い物や調理の支援","食事内容の確認と助言"],
+  staff: ["ご本人","ご家族","介護士"] },
+N08: { source: "新規作成", isNew: true,
+  needs: "食べ物の好き嫌いやこだわりがあるが、体調を崩さず好きなものも楽しみたい",
+  long: "こだわりを尊重しながら、栄養バランスのとれた食事を摂ることができる",
+  short: "苦手な食品の代わりになる食品を取り入れることができる",
+  services: ["本人の食習慣や考えを否定せずに聞く","好みに合わせた代替食品の提案","少量から試せる調理の工夫"],
+  staff: ["ご本人","ご家族","介護士"] },
+N09: { source: "新規作成", isNew: true,
+  needs: "活動量やリハビリ量が多く疲れやすいが、体力を落とさず動ける身体を維持したい",
+  long: "活動量に見合った栄養を摂り、疲れを残さず過ごすことができる",
+  short: "活動量に応じてエネルギー・水分を補給することができる",
+  services: ["活動量に応じた必要栄養量の算定","運動・リハビリ前後の補食と水分補給","リハビリ職と連携した活動量の調整"],
+  staff: ["ご家族","介護士"] },
+N10: { source: "新規作成", isNew: true,
+  needs: "口内炎などの症状があるが、症状を改善しておいしく食事をしたい",
+  long: "不足している栄養素を補い、症状なく食事を楽しむことができる",
+  short: "ビタミン・ミネラルを多く含む食品を毎日摂ることができる",
+  services: ["主治医への相談（検査値の確認）","不足栄養素を補う食品・献立の工夫","症状（舌炎・口角炎等）の観察","しみにくい・食べやすい調理の工夫"],
+  staff: ["医師","ご家族","介護士"] },
+N11: { source: "新規作成", isNew: true,
+  needs: "下痢や嘔吐などお腹の調子が悪いが、安心して食事を摂りたい",
+  long: "胃腸の調子が安定し、必要な栄養を摂ることができる",
+  short: "消化のよい食事で、症状を起こさずに食べることができる",
+  services: ["主治医への相談・受診介助","消化のよい食事形態・調理の工夫","症状（下痢・嘔吐・腹部膨満等）と食事摂取量の観察","脱水予防のための水分補給"],
+  staff: ["医師","看護師","ご家族"] },
+N12: { source: "新規作成", isNew: true,
+  needs: "食事の内容が偏っているが、バランスよく食べて健康に過ごしたい",
+  long: "主食・主菜・副菜のそろった食事を続けることができる",
+  short: "1日1回は主食・主菜・副菜のそろった食事を摂ることができる",
+  services: ["食事内容の確認と不足している食品の助言","配食サービス等の活用","好みに合わせた献立の工夫"],
+  staff: ["ご家族","介護士"] },
+N13: { source: "新規作成", isNew: true,
+  needs: "気分が沈んで食欲がわかないが、少しずつでも食べて元気を取り戻したい",
+  long: "気持ちが安定し、食事を楽しむことができる",
+  short: "好きなものを中心に、1日3回少量でも食べることができる",
+  services: ["好物や食べやすいものを中心とした食事の用意","無理強いせず、声かけ・見守りを行う","少量で栄養のとれる補助食品の活用","主治医への相談（うつ症状についての助言）"],
+  staff: ["医師","ご家族","介護士"] },
+N14: { source: "新規作成", isNew: true,
+  needs: "食品の管理がうまくできないが、安心・安全に食事をしたい",
+  long: "食中毒などを起こさず、安全に食事を続けることができる",
+  short: "期限切れや傷んだ食品を口にしないようにすることができる",
+  services: ["冷蔵庫内の食品の確認・整理","消費期限の確認と、わかりやすい表示の工夫","作り置きの保存方法の助言"],
+  staff: ["介護士","ご家族"] },
+N15: { source: "新規作成", isNew: true,
+  needs: "買い物や食事の準備が難しいが、毎日きちんと食事を摂りたい",
+  long: "必要な食材・食事が確保され、3食きちんと食べることができる",
+  short: "買い物や調理の支援を受けて、食事の準備ができる",
+  services: ["買い物代行・買い物同行","調理支援、配食サービスの利用","簡単に準備できる献立の提案"],
+  staff: ["介護士","ご家族","ケアマネージャー"] },
+N16: { source: "新規作成", isNew: true,
+  needs: "鼻からのチューブ（経鼻経管栄養）で栄養を摂っているが、トラブルなく安心して栄養補給を続けたい",
+  long: "チューブのトラブルなく、必要な栄養を摂って健康状態を維持することができる",
+  short: "チューブ周辺の皮膚トラブルや事故抜去を防ぐことができる",
+  services: ["チューブ固定部の観察と皮膚の清潔保持（固定位置の調整）","注入時の体位の調整と注入速度の確認","口腔ケア（経口摂取がなくても口腔内の清潔を保つ）","必要栄養量・水分量の算定と栄養剤の調整","異常があった場合は看護職・主治医へ相談"],
+  staff: ["医師","看護師","ご家族"] }
+};
+
+// ============ チェック項目データ ============
+const CODES = [
+  { label: "エネルギー消費の亢進（NI-1.1）", plans: ["N01","P05"] },
+  { label: "エネルギー摂取量不足（NI-1.2）", plans: ["P01","P02","P08","P16","N05"] },
+  { label: "水分摂取量不足（NI-3.1）", plans: ["P10","P11","P06","P09"] },
+  { label: "アルコール摂取量過剰（NI-4.3）", plans: ["N02"] },
+  { label: "栄養素摂取のインバランス（NI-5.5）", plans: ["N12","P22"] },
+  { label: "たんぱく質摂取量不足（NI-5.7.1）", plans: ["N03","P08"] },
+  { label: "炭水化物摂取量不足（NI-5.8.1）", plans: ["N04"] },
+  { label: "噛み砕き・咀嚼障害（NC-1.2）", plans: ["P01","P03"] },
+  { label: "嚥下障害（NC-1.1）", plans: ["P02","P04","P16","P24","P29"] },
+  { label: "消化機能異常（NC-1.4）", plans: ["N11","P13","P07"] },
+  { label: "栄養素代謝異常（NC-1.4）", plans: ["N10","P12","P09"] },
+  { label: "低体重（NC-3.1）", plans: ["N05"] },
+  { label: "意図しない体重減少（NC-3.2）", plans: ["N05","P08"] },
+  { label: "食物や薬剤の相互作用（NC-2.3）", plans: ["N06","P04"] },
+  { label: "食物や薬剤の相互作用の予測（NC-2.4）", plans: ["N06"] },
+  { label: "食物・栄養に関連した知識不足（NB-1.1）", plans: ["N07","P22"] },
+  { label: "食物・栄養の話題に対する誤った認識に関連した誤った信念（主義）や態度（NB-1.2）", plans: ["N08"] },
+  { label: "不規則な食事パターン（NB-1.5）", plans: ["P23","N12"] },
+  { label: "不適切な食物選択（NB-1.7）", plans: ["P22","N08"] },
+  { label: "身体活動不足（NB-2.1）", plans: ["P20"] },
+  { label: "身体活動過多（NB-2.2）", plans: ["N09"] },
+  { label: "自発的摂食困難（NB-2.6）", plans: ["P17","P18","P19","P15"] },
+  { label: "栄養関連用品の入手困難（NB-3.3）", plans: ["N15","P27"] },
+  { label: "安全でない食物摂取（NB-3.3）", plans: ["N14","P26","P29"] },
+  { label: "認知能力の低下や認知症（コードなし）", plans: ["P25","P26","P16"] },
+  { label: "うつや意欲低下（コードなし）", plans: ["N13","P28"] },
+  { label: "問題なし", plans: [], noProblem: true }
+];
+
+// 「選択項目.xlsx」の6分類。項目はExcelの記載順のまま。
+const EXTRA_GROUPS = [
+  { id: "g1", name: "症状", items: [
+    { label: "摂食障害", plans: ["P23","N08","N12"] },
+    { label: "過食", plans: ["N08","N12"] },
+    { label: "拒食", plans: ["N08","P22","P25"] },
+    { label: "偏食", plans: ["N08","P22"] },
+    { label: "体重減少", plans: ["N05","P08"] },
+    { label: "低BMI（18％未満）", plans: ["N05"] },
+    { label: "発熱", plans: ["N01","P05"] },
+    { label: "炎症", plans: ["N01","P05"] },
+    { label: "感染症", plans: ["N01","P05","N11"] },
+    { label: "食欲不振", plans: ["P01","P08","N13"] },
+    { label: "吐き気", plans: ["N11"] },
+    { label: "嘔吐", plans: ["N11","P13"] },
+    { label: "下痢", plans: ["N11","P13"] },
+    { label: "便秘", plans: ["P13","N11"] },
+    { label: "腹部膨満", plans: ["N11"] },
+    { label: "逆流", plans: ["N11"] },
+    { label: "ガス等", plans: ["N11"] },
+    { label: "吸収不良", plans: ["N11"] },
+    { label: "消化不良", plans: ["N11"] },
+    { label: "舌炎", plans: ["N10"] },
+    { label: "口角炎", plans: ["N10"] },
+    { label: "義歯の不具合", plans: ["P01","P03"] },
+    { label: "認知機能低下", plans: ["P25","P26","P16"] },
+    { label: "排尿量の変化", plans: ["P10","P11","P06"] },
+    { label: "排尿回数の変化", plans: ["P10","P11","P06"] },
+    { label: "リハビリメニュー過多", plans: ["N09"] }
+  ]},
+  { id: "g2", name: "現疾患・既往症", items: [
+    { label: "摂食嚥下障害", plans: ["P02","P04","P16","P24","P29"] },
+    { label: "咀嚼障害", plans: ["P01","P03"] },
+    { label: "経腸栄養（胃瘻）", plans: ["P30"] },
+    { label: "経腸栄養（経鼻）", plans: ["N16"] },
+    { label: "糖尿病", plans: ["P12"] },
+    { label: "心疾患", plans: ["P05","P09","N01"] },
+    { label: "腎不全", plans: ["P09","N10"] },
+    { label: "肝不全", plans: ["N10"] },
+    { label: "慢性閉塞性肺疾患", plans: ["N01","P05"] },
+    { label: "クローン病", plans: ["N11"] },
+    { label: "炎症性腸炎", plans: ["N11"] },
+    { label: "イレウス", plans: ["N11","P07"] },
+    { label: "ダンピング症候群", plans: ["N11"] },
+    { label: "癌", plans: ["P07","N01"] },
+    { label: "過敏性大腸炎", plans: ["N11"] },
+    { label: "パーキンソン病", plans: ["N01","P05","P06"] },
+    { label: "アルツハイマー病", plans: ["P25","P26","P05"] },
+    { label: "下垂体障害", plans: ["N10"] },
+    { label: "認知症", plans: ["P25","P26","P16"] },
+    { label: "精神的障害", plans: ["N13","P28"] },
+    { label: "うつ", plans: ["N13","P28"] },
+    { label: "慢性疲労", plans: ["N01","N09"] }
+  ]},
+  { id: "g3", name: "栄養管理に関する問題", items: [
+    { label: "自己摂取能力不足", plans: ["P17","P18","P19"] },
+    { label: "食欲低下", plans: ["P01","P08","N13"] },
+    { label: "食事摂取量低下", plans: ["P08","P02","N05"] },
+    { label: "食事摂取量不足", plans: ["P08","P22","N07"] },
+    { label: "エネルギー食品の摂取不足", plans: ["N04","N05"] },
+    { label: "たんぱく質性食品の摂取不足", plans: ["N03","P08"] },
+    { label: "炭水化物（糖質）食品の摂取不足", plans: ["N04"] },
+    { label: "水分摂取量不足", plans: ["P10","P11","P06"] },
+    { label: "水分摂取困難", plans: ["P10","P04","P29"] },
+    { label: "水分制限", plans: ["P09","P06"] },
+    { label: "アルコール摂取過剰", plans: ["N02"] }
+  ]},
+  { id: "g4", name: "問題点", items: [
+    { label: "活動意欲低下", plans: ["N13","P28","P20"] },
+    { label: "認知機能低下", plans: ["P25","P26","P16"] },
+    { label: "認知症による食欲低下", plans: ["P25","P26","N13"] },
+    { label: "うつ症状による食欲低下", plans: ["N13","P28"] },
+    { label: "食事中の失行", plans: ["P17","P18"] },
+    { label: "食事中の徘徊", plans: ["P25","P26"] },
+    { label: "食事への集中力欠如", plans: ["P24","P25"] },
+    { label: "偏食", plans: ["N08","P22"] },
+    { label: "拒食", plans: ["N08","P25"] },
+    { label: "食事摂取パターンが不規則", plans: ["P23","N12"] },
+    { label: "口渇感の低下", plans: ["P10","P11"] },
+    { label: "服薬による食欲低下", plans: ["N06"] },
+    { label: "その他薬の副作用", plans: ["N06"] },
+    { label: "気温変化に伴う水分必要量の増加", plans: ["P10","P11"] },
+    { label: "身体活動過多", plans: ["N09"] },
+    { label: "体液の激しい損失", plans: ["P10","P11","P06"] },
+    { label: "リハビリテーション量の増加", plans: ["N09"] },
+    { label: "発熱による不感蒸泄の増大", plans: ["P10","P11","N01"] },
+    { label: "食欲を低下させる飲酒", plans: ["N02"] },
+    { label: "食具を握れない", plans: ["P17","P18","P19"] },
+    { label: "頭や首を維持・コントロールできない", plans: ["P15","P19","P24"] },
+    { label: "口まで手を動かせない", plans: ["P19","P17"] },
+    { label: "肘や手首を曲げられない", plans: ["P19","P17"] },
+    { label: "背をまっすぐにして座れない", plans: ["P24","P15"] },
+    { label: "補助食器・自助食器が必要", plans: ["P17","P18"] }
+  ]},
+  { id: "g5", name: "環境要因", items: [
+    { label: "不適切な食物摂取", plans: ["P22","N08"] },
+    { label: "低栄養に対する認識不足", plans: ["N07","N05"] },
+    { label: "食物摂取拒否や食物摂取の無関心", plans: ["N13","N08","P25"] },
+    { label: "食事準備・買い物能力不足", plans: ["N15","P27"] },
+    { label: "食物へのアクセス不足", plans: ["N15","P08"] },
+    { label: "食物の準備や買い物の知識・能力不足", plans: ["N15","N07"] },
+    { label: "食事内容や食品等の入手（買い物、献立作成、食事準備等）に関する知識不足", plans: ["N07","N15"] },
+    { label: "誤った知識や主義", plans: ["N08"] }
+  ]},
+  { id: "g6", name: "配慮する要因", items: [
+    { label: "長期間摂取制限", plans: ["N03","N05"] },
+    { label: "文化的・宗教的制約", plans: ["N08"] },
+    { label: "心理的要因", plans: ["N13","P28"] },
+    { label: "経済的制約", plans: ["N15"] }
+  ]}
+];
+
+// ============ 画面生成 ============
+function renderChecklist(containerId, items, groupId) {
+  const box = document.getElementById(containerId);
+  items.forEach((item, i) => {
+    const label = document.createElement("label");
+    label.className = "item";
+    label.innerHTML = `<input type="checkbox" id="${groupId}-${i}" data-group="${groupId}" data-index="${i}"><span>${item.label}</span>`;
+    box.appendChild(label);
+  });
+}
+renderChecklist("listCodes", CODES, "c");
+EXTRA_GROUPS.forEach(g => {
+  const det = document.createElement("details");
+  det.className = "check-group";
+  det.innerHTML = `<summary>${g.name}</summary><div class="check-list grid" id="list-${g.id}"></div>`;
+  document.getElementById("extraGroups").appendChild(det);
+  renderChecklist("list-" + g.id, g.items, g.id);
+});
+
+const GROUPS = { c: { items: CODES, name: "栄養診断" } };
+EXTRA_GROUPS.forEach(g => GROUPS[g.id] = { items: g.items, name: g.name });
+
+// 担当者の選択肢と、プランごとの選択状態（表示中の編集を保持する）
+const STAFF_OPTIONS = ["医師","看護師","介護士","相談員","ケアマネージャー","管理栄養士","言語聴覚士","歯科衛生士","ご家族","ご本人"];
+const staffState = {};
+
+document.querySelectorAll('#selectSec input[type="checkbox"]').forEach(cb => cb.addEventListener("change", update));
+
+function clearAll() {
+  document.querySelectorAll('#selectSec input[type="checkbox"]').forEach(cb => cb.checked = false);
+  update();
+}
+
+function shorten(t) { return t.length > 28 ? t.slice(0, 28) + "…" : t; }
+
+function update() {
+  const checked = [...document.querySelectorAll('#selectSec input[type="checkbox"]:checked')];
+  document.getElementById("countLabel").textContent = `選択中：${checked.length}件`;
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+
+  if (checked.length === 0) {
+    results.innerHTML = '<div class="empty-msg">上の項目にチェックを入れると、該当するケアプランがここに表示されます。</div>';
+    return;
+  }
+
+  // プランID → マッチした項目ラベルの集約（チェック順を保持）
+  const planMatches = new Map();
+  let noProblemOnly = true;
+  checked.forEach(cb => {
+    const g = GROUPS[cb.dataset.group];
+    const item = g.items[cb.dataset.index];
+    if (!item.noProblem) noProblemOnly = false;
+    item.plans.forEach(pid => {
+      if (!planMatches.has(pid)) planMatches.set(pid, []);
+      planMatches.get(pid).push(`${g.name}：${shorten(item.label)}`);
+    });
+  });
+
+  if (planMatches.size === 0) {
+    results.innerHTML = noProblemOnly
+      ? '<div class="ok-msg">「問題なし」が選択されています。現在の栄養状態に問題はありません。引き続き食事摂取量・体重のモニタリングを継続してください。</div>'
+      : '<div class="empty-msg">該当するケアプランがありません。</div>';
+    return;
+  }
+
+  for (const [pid, matches] of planMatches) {
+    const p = PLANS[pid];
+    const card = document.createElement("div");
+    card.className = "plan-card";
+    const badge = p.isNew ? '<span class="badge-new">新規作成プラン</span>' : "";
+    // 初期値はプランの担当＋管理栄養士。以降はユーザーの選択・解除を保持する
+    if (!staffState[pid]) staffState[pid] = new Set([...p.staff, "管理栄養士"]);
+    const sel = staffState[pid];
+    const staffHtml = STAFF_OPTIONS.map(s =>
+      `<label class="staff-chip${sel.has(s) ? " on" : ""}"><input type="checkbox" data-plan="${pid}" data-staff="${s}"${sel.has(s) ? " checked" : ""}>${s}</label>`
+    ).join("") + '<div class="staff-hint">クリックで担当者を選択・解除できます</div>';
+    const servicesHtml = "<ul>" + p.services.map(s => `<li>${s}</li>`).join("") + "</ul>";
+    card.innerHTML = `
+      <div class="plan-head"><span class="src">${p.source}</span>${badge}</div>
+      <div class="plan-body">
+        <div class="row"><div class="lbl">ニーズ</div><div class="val">${p.needs}</div></div>
+        <div class="row"><div class="lbl">長期目標</div><div class="val">${p.long}</div></div>
+        <div class="row"><div class="lbl">短期目標</div><div class="val">${p.short}</div></div>
+        <div class="row"><div class="lbl">サービス内容</div><div class="val">${servicesHtml}</div></div>
+        <div class="row"><div class="lbl">担当者</div><div class="val">${staffHtml}</div></div>
+      </div>
+      <div class="matched">該当項目：${matches.map(m => `<b>${m}</b>`).join("　")}</div>`;
+    results.appendChild(card);
+  }
+
+  results.querySelectorAll(".staff-chip input").forEach(inp => inp.addEventListener("change", e => {
+    const set = staffState[e.target.dataset.plan];
+    if (e.target.checked) set.add(e.target.dataset.staff);
+    else set.delete(e.target.dataset.staff);
+    e.target.closest(".staff-chip").classList.toggle("on", e.target.checked);
+  }));
+}
+</script>
+</body>
+</html>
